@@ -28,7 +28,7 @@ def add_memory(memory_id: str, content: str, metadata: dict):
     col.upsert(ids=[memory_id], documents=[content], metadatas=[str_metadata])
 
 
-def search_memories(query: str, n_results: int = 5) -> list[dict]:
+def search_memories(query: str, n_results: int = 5, user_id: str | None = None) -> list[dict]:
     col = _get_collection()
     count = col.count()
     if count == 0:

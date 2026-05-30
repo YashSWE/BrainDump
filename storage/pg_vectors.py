@@ -26,7 +26,7 @@ def _db():
 def _embed(text: str) -> list[float]:
     import google.generativeai as genai
     genai.configure(api_key=GEMINI_API_KEY)
-    result = genai.embed_content(model="models/text-embedding-004", content=text)
+    result = genai.embed_content(model="models/gemini-embedding-2", content=text, output_dimensionality=768)
     return result["embedding"]
 
 

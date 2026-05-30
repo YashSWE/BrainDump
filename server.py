@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from typing import Optional
 
 from mcp.server.fastmcp import FastMCP
+from mcp.server.transport_security import TransportSecuritySettings
 
 from auth import get_user_id
 from models import Memory, Goal, Event, FinancialFact, Skill, Relationship, DelegatedTask, Followup
@@ -22,6 +23,7 @@ from storage import (
 
 mcp = FastMCP(
     "BrainDump",
+    transport_security=TransportSecuritySettings(enable_dns_rebinding_protection=False),
     instructions=(
         "You are connected to BrainDump, the user's persistent User Information Management System (UIMS). "
         "RULES — follow these strictly:\n"
