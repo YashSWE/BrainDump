@@ -24,10 +24,18 @@ def _db():
 
 
 def _embed(text: str) -> list[float]:
-    import google.generativeai as genai
-    genai.configure(api_key=GEMINI_API_KEY)
-    result = genai.embed_content(model="models/gemini-embedding-2", content=text, output_dimensionality=768)
-    return result["embedding"]
+    from google import genai
+    from google.genai import types as gtypes
+    client = genai.Client(
+        api_key=GEMINI_API_KEY,
+        http_options=gtypes.HttpOptions(api_version="v1"),
+    )
+    result = client.models.embed_content(
+        model="gemini-embedding-001",
+        contents=text,
+        config=gtypes.EmbedContentConfig(output_dimensionality=768),
+    )
+    return result.embeddings[0].values
 
 
 def _vec_str(embedding: list[float]) -> str:

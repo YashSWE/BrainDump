@@ -4,10 +4,11 @@ from typing import Optional
 
 import uvicorn
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import FileResponse, Response
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
-from auth import current_user_id, resolve_token, get_user_id
+from auth import current_user_id, get_user_id
+from chat import router as chat_router
 from storage import (
     init_db,
     list_memories, delete_memory as db_delete,
@@ -31,26 +32,21 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="BrainDump UI", lifespan=lifespan)
+app = FastAPI(title="BrainDump", lifespan=lifespan)
 
 
 @app.middleware("http")
-async def auth_middleware(request: Request, call_next):
-    token = request.headers.get("X-Token", "") or request.query_params.get("token", "")
-    user_id = resolve_token(token)
-    if user_id is None:
-        return Response("Unauthorized — include X-Token header", status_code=401, media_type="text/plain")
-    ctx_token = current_user_id.set(user_id)
+async def set_user(request: Request, call_next):
+    ctx_token = current_user_id.set("default")
     try:
-        response = await call_next(request)
+        return await call_next(request)
     finally:
         current_user_id.reset(ctx_token)
-    return response
 
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
+app.include_router(chat_router)
 
-# Mount MCP server at /mcp (works for both local and cloud)
 from server import mcp
 app.mount("/mcp", mcp.sse_app())
 
@@ -64,15 +60,12 @@ def index():
 
 @app.get("/api/memories")
 def get_memories(category: Optional[str] = None, type: Optional[str] = None, limit: int = 500):
-    uid = get_user_id()
-    memories = list_memories(category=category, type=type, limit=limit, user_id=uid)
-    return [m.model_dump(mode="json") for m in memories]
+    return [m.model_dump(mode="json") for m in list_memories(category=category, type=type, limit=limit, user_id=get_user_id())]
 
 
 @app.get("/api/memories/search")
 def search(q: str, n: int = 20):
-    uid = get_user_id()
-    return search_memories(q, n, user_id=uid)
+    return search_memories(q, n, user_id=get_user_id())
 
 
 @app.delete("/api/memories/{memory_id}")
@@ -88,8 +81,7 @@ def forget(memory_id: str):
 
 @app.get("/api/goals")
 def get_goals(category: Optional[str] = None, status: Optional[str] = None):
-    uid = get_user_id()
-    return [g.model_dump(mode="json") for g in list_goals(category=category, status=status, user_id=uid)]
+    return [g.model_dump(mode="json") for g in list_goals(category=category, status=status, user_id=get_user_id())]
 
 
 # ── Events ────────────────────────────────────────────────────────────────────
@@ -103,8 +95,7 @@ def get_events():
 
 @app.get("/api/financial")
 def get_financial(status: Optional[str] = None):
-    uid = get_user_id()
-    return [f.model_dump(mode="json") for f in list_financial_facts(status=status, user_id=uid)]
+    return [f.model_dump(mode="json") for f in list_financial_facts(status=status, user_id=get_user_id())]
 
 
 # ── Skills ────────────────────────────────────────────────────────────────────
@@ -125,8 +116,7 @@ def get_relationships():
 
 @app.get("/api/tasks")
 def get_tasks(status: Optional[str] = None):
-    uid = get_user_id()
-    return [t.model_dump(mode="json") for t in list_delegated_tasks(status=status, user_id=uid)]
+    return [t.model_dump(mode="json") for t in list_delegated_tasks(status=status, user_id=get_user_id())]
 
 
 # ── Follow-ups ────────────────────────────────────────────────────────────────
