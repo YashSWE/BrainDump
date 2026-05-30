@@ -52,7 +52,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Mount MCP server at /mcp (works for both local and cloud)
 from server import mcp
-app.mount("/mcp/", mcp.streamable_http_app())
+app.mount("/mcp", mcp.sse_app())
 
 
 @app.get("/")
