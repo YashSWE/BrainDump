@@ -1,0 +1,22 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "braindump"
+version = "0.1.0"
+description = "Personal memory and information management MCP server"
+requires-python = ">=3.10"
+dependencies = [
+    "mcp[cli]>=1.0.0",
+    "chromadb>=0.5.0",
+    "sentence-transformers>=3.0.0",
+    "pydantic>=2.0.0",
+    "fastapi>=0.110.0",
+]
+
+[project.scripts]
+braindump = "server:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["."]

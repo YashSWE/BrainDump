@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BrainDump</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { background: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 0; }
+
+    /* ── Nav ── */
+    .nav-link {
+      padding: 6px 2px; font-size: 13.5px; font-weight: 500; color: #64748b;
+      cursor: pointer; border: none; background: none;
+      border-bottom: 2px solid transparent;
+      transition: color 0.15s, border-color 0.15s;
+      white-space: nowrap;
+    }
+    .nav-link:hover { color: #1e293b; }
+    .nav-link.active { color: #0f172a; border-bottom-color: #0f172a; }
+    .nav-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      min-width: 17px; height: 17px; padding: 0 4px;
+      font-size: 10px; font-weight: 700; border-radius: 999px;
+      background: #fee2e2; color: #dc2626; margin-left: 4px;
+    }
+
+    /* ── Views ── */
+    .view { display: none; }
+    .view.active { display: block; }
+
+    /* ── Home animations ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .home-card { animation: fadeUp 0.35s ease forwards; opacity: 0; }
+    .home-card:nth-child(1) { animation-delay: 0.04s; }
+    .home-card:nth-child(2) { animation-delay: 0.10s; }
+    .home-card:nth-child(3) { animation-delay: 0.16s; }
+    .home-card:nth-child(4) { animation-delay: 0.22s; }
+    .home-card:nth-child(5) { animation-delay: 0.28s; }
+
+    /* ── Cards ── */
+    .card {
+      background: white; border: 1px solid #e2e8f0;
+      border-radius: 16px; padding: 20px;
+    }
+    .card-sm { border-radius: 12px; padding: 14px 16px; }
+
+    /* ── Progress ── */
+    .progress-track { height: 5px; background: #f1f5f9; border-radius: 999px; overflow: hidden; }
+    .progress-fill  { height: 100%; border-radius: 999px; transition: width 0.5s ease; }
+
+    /* ── Badge ── */
+    .badge {
+      display: inline-block; font-size: 11px; font-weight: 600;
+      padding: 2px 8px; border-radius: 999px;
+    }
+
+    /* ── Journal ── */
+    .note-card {
+      border-left: 3px solid #e2e8f0; padding: 14px 16px;
+      background: white; border-radius: 0 12px 12px 0;
+      transition: border-color 0.15s;
+    }
+    .note-card:hover { border-left-color: #94a3b8; }
+
+    /* ── Filter pills ── */
+    .pill {
+      font-size: 12px; font-weight: 500; padding: 5px 14px;
+      border-radius: 999px; border: 1.5px solid #e2e8f0;
+      color: #64748b; cursor: pointer; background: white;
+      transition: all 0.12s; white-space: nowrap;
+    }
+    .pill:hover { border-color: #cbd5e1; color: #334155; }
+    .pill.active { background: #0f172a; border-color: #0f172a; color: white; }
+
+    /* ── Search ── */
+    .search-field {
+      width: 100%; padding: 14px 18px 14px 48px;
+      font-size: 15px; color: #1e293b;
+      border: 1.5px solid #e2e8f0; border-radius: 14px;
+      background: white; outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .search-field:focus { border-color: #94a3b8; box-shadow: 0 0 0 3px rgba(148,163,184,0.15); }
+    .search-wrap { position: relative; }
+    .search-wrap .ico { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #94a3b8; pointer-events: none; }
+
+    /* ── Nav search ── */
+    #nav-search {
+      padding: 6px 12px 6px 32px; border-radius: 999px;
+      border: 1.5px solid #e2e8f0; font-size: 13px;
+      color: #1e293b; outline: none; width: 180px; background: white;
+      transition: border-color 0.15s, width 0.2s;
+    }
+    #nav-search:focus { border-color: #94a3b8; width: 240px; }
+    .nav-search-wrap { position: relative; }
+    .nav-search-wrap .ico { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #94a3b8; pointer-events: none; }
+
+    /* ── Profile panel ── */
+    #profile-panel {
+      position: fixed; top: 0; right: 0; width: 360px; height: 100vh;
+      background: white; border-left: 1px solid #e2e8f0;
+      transform: translateX(100%); transition: transform 0.25s ease;
+      z-index: 50; overflow-y: auto; padding: 24px;
+    }
+    #profile-panel.open { transform: translateX(0); }
+    #profile-overlay {
+      position: fixed; inset: 0; background: rgba(15,23,42,0.25);
+      z-index: 49; opacity: 0; pointer-events: none; transition: opacity 0.25s;
+    }
+    #profile-overlay.open { opacity: 1; pointer-events: auto; }
+
+    /* ── Table ── */
+    table { width: 100%; border-collapse: collapse; }
+    th { text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #94a3b8; padding: 10px 12px; border-bottom: 1px solid #f1f5f9; }
+    td { padding: 12px 12px; border-bottom: 1px solid #f8fafc; font-size: 13px; color: #374151; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #fafafa; }
+
+    /* ── Momentum dot ── */
+    .m-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 999px; }
+  </style>
+</head>
+<body>
+
+<!-- ── Header ──────────────────────────────────────────────────────────────── -->
+<header class="bg-white border-b border-slate-100 sticky top-0 z-30">
+  <div class="max-w-5xl mx-auto px-6 h-14 flex items-center gap-6">
+
+    <div class="flex items-center gap-2 shrink-0">
+      <span class="text-xl">🧠</span>
+      <span class="font-bold text-slate-900 text-sm tracking-tight">BrainDump</span>
+    </div>
+
+    <nav class="flex items-center gap-5 overflow-x-auto flex-1">
+      <button class="nav-link active" onclick="switchView('home',this)">Home</button>
+      <button class="nav-link" onclick="switchView('goals',this)">
+        Goals <span class="nav-badge hidden" id="badge-goals">0</span>
+      </button>
+      <button class="nav-link" onclick="switchView('finance',this)">Finance</button>
+      <button class="nav-link" onclick="switchView('people',this)">People</button>
+      <button class="nav-link" onclick="switchView('journal',this)">Journal</button>
+      <button class="nav-link" onclick="switchView('search',this)">Search</button>
+    </nav>
+
+    <button onclick="toggleProfile()"
+      class="shrink-0 flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-slate-800 transition-colors px-3 py-1.5 rounded-full border border-slate-200 hover:border-slate-300">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
+      </svg>
+      Profile
+    </button>
+  </div>
+</header>
+
+<!-- ── Profile Overlay ──────────────────────────────────────────────────────── -->
+<div id="profile-overlay" onclick="toggleProfile()"></div>
+
+<!-- ── Profile Panel ────────────────────────────────────────────────────────── -->
+<div id="profile-panel">
+  <div class="flex items-center justify-between mb-6">
+    <h2 class="font-bold text-slate-900">Profile</h2>
+    <button onclick="toggleProfile()" class="text-slate-400 hover:text-slate-700">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+
+  <div id="profile-fields" class="mb-6"></div>
+
+  <div class="mb-6">
+    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Facts about you</p>
+    <div id="profile-facts" class="space-y-2"></div>
+  </div>
+
+  <div class="mb-6">
+    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Skills</p>
+    <div id="profile-skills" class="space-y-1.5"></div>
+  </div>
+
+  <div class="border-t border-slate-100 pt-4 mt-4">
+    <p class="text-xs text-slate-400 mb-2">Copy your context to paste into any AI</p>
+    <button onclick="copyContext()"
+      class="w-full py-2.5 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors">
+      Copy context
+    </button>
+    <p id="copy-confirm" class="text-xs text-emerald-600 mt-2 hidden text-center">Copied to clipboard ✓</p>
+  </div>
+</div>
+
+<!-- ── Main ─────────────────────────────────────────────────────────────────── -->
+<main class="max-w-5xl mx-auto px-6 py-8">
+
+  <!-- HOME ------------------------------------------------------------------ -->
+  <div id="view-home" class="view active">
+    <div id="home-greeting" class="mb-7">
+      <h1 class="text-2xl font-bold text-slate-900" id="greeting-text"></h1>
+      <p class="text-sm text-slate-400 mt-0.5" id="greeting-date"></p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-5 gap-5" id="home-grid">
+      <!-- Col 1: Pulse + Momentum (wider) -->
+      <div class="lg:col-span-3 space-y-5">
+        <div class="home-card card" id="card-pulse"></div>
+        <div class="home-card card" id="card-momentum"></div>
+      </div>
+      <!-- Col 2: Follow-ups + Notes (narrower) -->
+      <div class="lg:col-span-2 space-y-5">
+        <div class="home-card card" id="card-followups"></div>
+        <div class="home-card card" id="card-notes"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GOALS ----------------------------------------------------------------- -->
+  <div id="view-goals" class="view">
+    <div class="flex items-center justify-between mb-5">
+      <h1 class="text-xl font-bold text-slate-900">Goals</h1>
+      <div class="flex gap-2" id="goals-filters">
+        <button class="pill active" onclick="filterGoals('active',this)">Active</button>
+        <button class="pill" onclick="filterGoals('stalled',this)">Stalled</button>
+        <button class="pill" onclick="filterGoals('completed',this)">Completed</button>
+        <button class="pill" onclick="filterGoals(null,this)">All</button>
+      </div>
+    </div>
+    <div id="goals-list" class="space-y-4"></div>
+  </div>
+
+  <!-- FINANCE --------------------------------------------------------------- -->
+  <div id="view-finance" class="view">
+    <div class="flex items-center justify-between mb-5">
+      <h1 class="text-xl font-bold text-slate-900">Finance</h1>
+      <div class="flex gap-2" id="fin-filters">
+        <button class="pill active" onclick="filterFin('active',this)">Active</button>
+        <button class="pill" onclick="filterFin(null,this)">All</button>
+      </div>
+    </div>
+
+    <!-- AI snapshot placeholder -->
+    <div class="card mb-5 border-dashed border-slate-200 bg-slate-50" id="fin-insight-placeholder">
+      <div class="flex items-start gap-3">
+        <span class="text-2xl">💡</span>
+        <div>
+          <p class="text-sm font-semibold text-slate-700">Financial Insight</p>
+          <p class="text-xs text-slate-400 mt-0.5">AI-generated snapshot of your financial position — coming in the next update.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mb-5">
+      <table>
+        <thead>
+          <tr><th>Type</th><th>Asset</th><th>Amount</th><th>Date</th><th>Age</th><th>Status</th></tr>
+        </thead>
+        <tbody id="fin-table"></tbody>
+      </table>
+    </div>
+    <div id="fin-notes-section"></div>
+  </div>
+
+  <!-- PEOPLE ---------------------------------------------------------------- -->
+  <div id="view-people" class="view">
+    <h1 class="text-xl font-bold text-slate-900 mb-5">People</h1>
+    <div id="people-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+    <div id="people-notes-section" class="mt-5"></div>
+  </div>
+
+  <!-- JOURNAL --------------------------------------------------------------- -->
+  <div id="view-journal" class="view">
+    <div class="flex items-center justify-between mb-5">
+      <h1 class="text-xl font-bold text-slate-900">Journal</h1>
+      <div class="flex gap-2 flex-wrap" id="journal-filters">
+        <button class="pill active" onclick="filterJournal(null,this)">All</button>
+        <button class="pill" onclick="filterJournal('happy',this)">😊 Happy</button>
+        <button class="pill" onclick="filterJournal('excited',this)">🤩 Excited</button>
+        <button class="pill" onclick="filterJournal('neutral',this)">😐 Neutral</button>
+        <button class="pill" onclick="filterJournal('stressed',this)">😰 Stressed</button>
+        <button class="pill" onclick="filterJournal('anxious',this)">😟 Anxious</button>
+        <button class="pill" onclick="filterJournal('sad',this)">😢 Sad</button>
+      </div>
+    </div>
+    <div id="journal-feed" class="space-y-3"></div>
+    <div id="journal-empty" class="hidden text-center py-16">
+      <p class="text-4xl mb-3">💭</p>
+      <p class="text-sm text-slate-400 font-medium">No notes yet</p>
+      <p class="text-xs text-slate-400 mt-1">Tell Claude how you're feeling and it'll appear here</p>
+    </div>
+  </div>
+
+  <!-- SEARCH ---------------------------------------------------------------- -->
+  <div id="view-search" class="view">
+    <div class="max-w-2xl mx-auto">
+      <h1 class="text-xl font-bold text-slate-900 mb-5">Search</h1>
+      <div class="search-wrap mb-6">
+        <svg class="ico" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+        </svg>
+        <input id="search-input" class="search-field" placeholder="Search across everything you've stored…" autocomplete="off" />
+      </div>
+      <div id="search-results"></div>
+      <div id="search-empty" class="hidden text-center py-12 text-slate-400">
+        <p class="text-3xl mb-2">🔍</p>
+        <p class="text-sm font-medium">No results found</p>
+      </div>
+      <div id="search-hint" class="text-center py-12 text-slate-400">
+        <p class="text-sm">Type to search semantically across your facts and notes</p>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ── State ─────────────────────────────────────────────────────────────────────
+let allGoals = [], allEvents = [], allFin = [], allNotes = [], allFacts = []
+let allPeople = [], allSkills = [], allTasks = [], allFollowups = []
+let profile = {}, statsData = {}
+let currentView = 'home'
+let searchTimer = null
+
+// ── Colour maps ───────────────────────────────────────────────────────────────
+const CAT = {
+  career:        { bg:'#eff6ff', badge:'#dbeafe', text:'#1e40af', dot:'#3b82f6' },
+  financial:     { bg:'#f0fdf4', badge:'#dcfce7', text:'#14532d', dot:'#22c55e' },
+  health:        { bg:'#fff1f2', badge:'#ffe4e6', text:'#9f1239', dot:'#f43f5e' },
+  creative:      { bg:'#fff7ed', badge:'#ffedd5', text:'#7c2d12', dot:'#f97316' },
+  learning:      { bg:'#fefce8', badge:'#fef9c3', text:'#713f12', dot:'#eab308' },
+  relationships: { bg:'#fdf4ff', badge:'#fae8ff', text:'#581c87', dot:'#a855f7' },
+  lifestyle:     { bg:'#f0fdfa', badge:'#ccfbf1', text:'#134e4a', dot:'#14b8a6' },
+  wellbeing:     { bg:'#f5f3ff', badge:'#ede9fe', text:'#4c1d95', dot:'#8b5cf6' },
+  general:       { bg:'#f8fafc', badge:'#f1f5f9', text:'#475569', dot:'#94a3b8' },
+}
+const DEFAULT_CAT = CAT.general
+const catC = c => CAT[c] || DEFAULT_CAT
+
+const MOOD_EMOJI = { happy:'😊', neutral:'😐', stressed:'😰', anxious:'😟', excited:'🤩', sad:'😢' }
+const REL_ICON   = { friend:'👥', manager:'💼', mentor:'🧭', sister:'👩', brother:'👦', family:'🏠', partner:'💑', colleague:'🤝', company:'🏢' }
+const FIN_ICON   = { investment:'📈', expense:'💸', income:'💵', debt:'🔴', saving:'🏦' }
+const PROF_W     = { beginner:'25%', intermediate:'50%', advanced:'75%', expert:'100%' }
+const PROF_C     = { beginner:'#94a3b8', intermediate:'#3b82f6', advanced:'#8b5cf6', expert:'#22c55e' }
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+const esc = s => s ? String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') : ''
+
+function relTime(dateStr) {
+  if (!dateStr) return ''
+  const diff = Date.now() - new Date(dateStr)
+  const d = Math.floor(diff / 86400000)
+  if (d === 0) return 'today'
+  if (d === 1) return 'yesterday'
+  if (d < 7)  return `${d} days ago`
+  if (d < 30) return `${Math.floor(d/7)} week${Math.floor(d/7)>1?'s':''} ago`
+  if (d < 365)return `${Math.floor(d/30)} month${Math.floor(d/30)>1?'s':''} ago`
+  return `${Math.floor(d/365)}y ago`
+}
+
+function absDate(s) {
+  if (!s) return ''
+  return new Date(s).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })
+}
+
+function daysBetween(dateStr) {
+  return Math.floor((Date.now() - new Date(dateStr)) / 86400000)
+}
+
+function deadlineInfo(deadline) {
+  if (!deadline) return null
+  const days = Math.ceil((new Date(deadline) - Date.now()) / 86400000)
+  if (days < 0)  return { label:`${Math.abs(days)}d overdue`, color:'#ef4444' }
+  if (days === 0) return { label:'Due today',                  color:'#ef4444' }
+  if (days <= 7)  return { label:`${days}d left`,              color:'#f59e0b' }
+  return            { label:`${days}d left`,                   color:'#94a3b8' }
+}
+
+function momentum(goal) {
+  const d = daysBetween(goal.updated_at)
+  if (d <= 7)  return { color:'#22c55e', label:'Moving',  days:d }
+  if (d <= 21) return { color:'#f59e0b', label:'Slowing', days:d }
+  return              { color:'#ef4444', label:'Stalled',  days:d }
+}
+
+function ageStyle(transDate) {
+  const d = daysBetween(transDate)
+  if (d < 30)  return { label:`${d}d`, color:'#94a3b8' }
+  if (d < 90)  return { label:`${d}d`, color:'#d97706' }
+  return              { label:`${d}d`, color:'#dc2626' }
+}
+
+function catBadge(cat) {
+  const c = catC(cat)
+  return `<span class="badge" style="background:${c.badge};color:${c.text}">${cat}</span>`
+}
+
+function statusBadge(s) {
+  const map = {
+    active:'#dcfce7:#14532d', completed:'#dbeafe:#1e40af',
+    paused:'#fef9c3:#713f12', abandoned:'#fee2e2:#9f1239',
+    sold:'#f1f5f9:#475569',   settled:'#f1f5f9:#475569', pending:'#fef9c3:#713f12',
+  }
+  const [bg, tc] = (map[s]||'#f1f5f9:#475569').split(':')
+  return `<span class="badge" style="background:${bg};color:${tc}">${s}</span>`
+}
+
+// ── Load all ──────────────────────────────────────────────────────────────────
+async function loadAll() {
+  const [stats, goals, events, fin, notes, facts, people, skills, tasks, followups, prof] = await Promise.all([
+    fetch('/api/stats').then(r=>r.json()),
+    fetch('/api/goals').then(r=>r.json()),
+    fetch('/api/events').then(r=>r.json()),
+    fetch('/api/financial').then(r=>r.json()),
+    fetch('/api/memories?type=note&limit=200').then(r=>r.json()),
+    fetch('/api/memories?type=fact&limit=200').then(r=>r.json()),
+    fetch('/api/relationships').then(r=>r.json()),
+    fetch('/api/skills').then(r=>r.json()),
+    fetch('/api/tasks').then(r=>r.json()),
+    fetch('/api/followups?status=pending').then(r=>r.json()),
+    fetch('/api/profile').then(r=>r.json()),
+  ])
+
+  allGoals = goals; allEvents = events; allFin = fin; allNotes = notes
+  allFacts = facts; allPeople = people; allSkills = skills
+  allTasks = tasks; allFollowups = followups; profile = prof; statsData = stats
+
+  // Stalled goals badge
+  const stalled = goals.filter(g => g.status === 'active' && daysBetween(g.updated_at) > 21)
+  const badge = document.getElementById('badge-goals')
+  if (stalled.length) { badge.textContent = stalled.length; badge.classList.remove('hidden') }
+  else badge.classList.add('hidden')
+
+  renderHome()
+  renderGoals(goals.filter(g => g.status === 'active'))
+  renderFin(fin.filter(f => f.status === 'active'))
+  renderPeople(people)
+  renderJournal(notes)
+  renderProfile(prof, facts, skills)
+}
+
+// ── Navigation ────────────────────────────────────────────────────────────────
+function switchView(view, btn) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'))
+  document.querySelectorAll('.nav-link').forEach(b => b.classList.remove('active'))
+  document.getElementById(`view-${view}`).classList.add('active')
+  if (btn) btn.classList.add('active')
+  currentView = view
+  if (view === 'home') renderHome()
+}
+
+// ── HOME ──────────────────────────────────────────────────────────────────────
+function renderHome() {
+  // Greeting
+  const h = new Date().getHours()
+  const name = profile?.name?.split(' ')[0] || ''
+  const greetings = ['Still up', 'Still up', 'Still up', 'Still up', 'Still up',
+    'Good morning', 'Good morning', 'Good morning', 'Good morning', 'Good morning', 'Good morning', 'Good morning',
+    'Good afternoon', 'Good afternoon', 'Good afternoon', 'Good afternoon', 'Good afternoon',
+    'Good evening', 'Good evening', 'Good evening', 'Good evening', 'Good evening',
+    'Still up', 'Still up']
+  document.getElementById('greeting-text').textContent = `${greetings[h]}${name ? ', ' + name : ''}.`
+  document.getElementById('greeting-date').textContent = new Date().toLocaleDateString('en-IN', { weekday:'long', day:'numeric', month:'long', year:'numeric' })
+
+  renderPulse()
+  renderMomentumCard()
+  renderFollowupsCard()
+  renderRecentNotesCard()
+}
+
+function renderPulse() {
+  const el = document.getElementById('card-pulse')
+  const today = new Date().toISOString().split('T')[0]
+  const week  = new Date(Date.now() + 7*86400000).toISOString().split('T')[0]
+  const upcoming = allEvents.filter(e => e.event_date >= today && e.event_date <= week)
+  const overdue  = allTasks.filter(t => t.status === 'active' && t.check_in_date && t.check_in_date <= today)
+  const fuCount  = allFollowups.length
+
+  const rows = []
+
+  if (upcoming.length) {
+    upcoming.slice(0,3).forEach(e => {
+      const days = Math.ceil((new Date(e.event_date) - Date.now()) / 86400000)
+      const when = days === 0 ? 'Today' : days === 1 ? 'Tomorrow' : `in ${days}d`
+      rows.push(`<div class="flex items-center gap-2.5 py-2 border-b border-slate-50 last:border-0">
+        <span class="text-base">📅</span>
+        <span class="text-sm text-slate-700 flex-1">${esc(e.title)}</span>
+        <span class="text-xs font-medium" style="color:#3b82f6">${when}</span>
+      </div>`)
+    })
+  } else {
+    rows.push(`<div class="flex items-center gap-2.5 py-2 border-b border-slate-50">
+      <span class="text-base">📅</span>
+      <span class="text-sm text-slate-400">Nothing coming up this week</span>
+    </div>`)
+  }
+
+  if (overdue.length) {
+    rows.push(`<div class="flex items-center gap-2.5 py-2 border-b border-slate-50 last:border-0">
+      <span class="text-base">📋</span>
+      <span class="text-sm text-slate-700 flex-1">${overdue.length} task${overdue.length>1?'s':''} overdue for check-in</span>
+      <button onclick="switchView('tasks',null)" class="text-xs text-slate-400 hover:text-slate-700">view →</button>
+    </div>`)
+  }
+
+  if (fuCount > 0) {
+    rows.push(`<div class="flex items-center gap-2.5 py-2 last:border-0">
+      <span class="text-base">❓</span>
+      <span class="text-sm text-slate-700 flex-1">${fuCount} follow-up${fuCount>1?'s':''} waiting</span>
+    </div>`)
+  } else {
+    rows.push(`<div class="flex items-center gap-2.5 py-2 last:border-0">
+      <span class="text-base">✅</span>
+      <span class="text-sm text-slate-400">All caught up</span>
+    </div>`)
+  }
+
+  el.innerHTML = `
+    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Today's pulse</p>
+    <div>${rows.join('')}</div>`
+}
+
+function renderMomentumCard() {
+  const el = document.getElementById('card-momentum')
+  const active = allGoals.filter(g => g.status === 'active')
+
+  if (!active.length) {
+    el.innerHTML = `
+      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Goal momentum</p>
+      <p class="text-sm text-slate-400">No active goals yet — tell Claude what you're working towards.</p>`
+    return
+  }
+
+  // Sort: stalled first
+  const sorted = [...active].sort((a,b) => daysBetween(b.updated_at) - daysBetween(a.updated_at))
+
+  const items = sorted.slice(0,5).map(g => {
+    const m = momentum(g)
+    const dl = deadlineInfo(g.deadline)
+    const c = catC(g.category)
+    return `
+      <div class="flex items-center gap-3 py-3 border-b border-slate-50 last:border-0">
+        <span class="m-dot" style="background:${m.color};box-shadow:0 0 0 3px ${m.color}22"></span>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-medium text-slate-800 truncate">${esc(g.title)}</p>
+          <div class="flex items-center gap-2 mt-0.5">
+            <span class="text-xs" style="color:${m.color}">${m.label} · ${m.days === 0 ? 'today' : m.days + 'd ago'}</span>
+            ${dl ? `<span class="text-xs" style="color:${dl.color}">${dl.label}</span>` : ''}
+          </div>
+        </div>
+        <div class="text-right shrink-0">
+          <span class="text-xs font-semibold text-slate-500">${g.progress}%</span>
+          <div class="progress-track w-16 mt-1">
+            <div class="progress-fill" style="width:${g.progress}%;background:${c.dot}"></div>
+          </div>
+        </div>
+      </div>`
+  }).join('')
+
+  el.innerHTML = `
+    <div class="flex items-center justify-between mb-3">
+      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Goal momentum</p>
+      <button onclick="switchView('goals', document.querySelector('[onclick*=goals]'))" class="text-xs text-slate-400 hover:text-slate-700">All goals →</button>
+    </div>
+    <div>${items}</div>`
+}
+
+function renderFollowupsCard() {
+  const el = document.getElementById('card-followups')
+  const fus = allFollowups.slice(0,3)
+
+  if (!fus.length) {
+    el.innerHTML = `
+      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Follow-ups</p>
+      <div class="flex items-center gap-2 py-2">
+        <span class="text-xl">✅</span>
+        <span class="text-sm text-slate-400">You're all caught up</span>
+      </div>`
+    return
+  }
+
+  const items = fus.map(fu => `
+    <div class="py-3 border-b border-slate-50 last:border-0">
+      <p class="text-sm text-slate-700 leading-relaxed">❓ ${esc(fu.question)}</p>
+      <p class="text-xs text-slate-400 mt-1">Answer in Claude to resolve</p>
+    </div>`).join('')
+
+  const more = allFollowups.length > 3 ? `<p class="text-xs text-slate-400 mt-2">+${allFollowups.length-3} more</p>` : ''
+
+  el.innerHTML = `
+    <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Follow-ups</p>
+    <div>${items}</div>
+    ${more}`
+}
+
+function renderRecentNotesCard() {
+  const el = document.getElementById('card-notes')
+  const recent = allNotes.slice(0,3)
+
+  if (!recent.length) {
+    el.innerHTML = `
+      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">Recent notes</p>
+      <p class="text-sm text-slate-400">Your thoughts will appear here as you share them with Claude.</p>`
+    return
+  }
+
+  const items = recent.map(n => {
+    const mood = n.mood ? MOOD_EMOJI[n.mood] || '' : ''
+    return `
+      <div class="py-2.5 border-b border-slate-50 last:border-0">
+        <p class="text-sm text-slate-700 leading-relaxed">${mood}${mood ? ' ' : ''}${esc(n.content.slice(0,90))}${n.content.length>90?'…':''}</p>
+        <p class="text-xs text-slate-400 mt-1">${relTime(n.created_at)}</p>
+      </div>`
+  }).join('')
+
+  el.innerHTML = `
+    <div class="flex items-center justify-between mb-1">
+      <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide">Recent notes</p>
+      <button onclick="switchView('journal', document.querySelector('[onclick*=journal]'))" class="text-xs text-slate-400 hover:text-slate-700">Journal →</button>
+    </div>
+    <div>${items}</div>`
+}
+
+// ── GOALS ─────────────────────────────────────────────────────────────────────
+let goalsFilter = 'active'
+
+function filterGoals(status, btn) {
+  goalsFilter = status
+  document.querySelectorAll('#goals-filters .pill').forEach(b => b.classList.remove('active'))
+  if (btn) btn.classList.add('active')
+  let filtered = allGoals
+  if (status === 'active')   filtered = allGoals.filter(g => g.status === 'active')
+  else if (status === 'stalled') filtered = allGoals.filter(g => g.status === 'active' && daysBetween(g.updated_at) > 21)
+  else if (status === 'completed') filtered = allGoals.filter(g => g.status === 'completed')
+  renderGoals(filtered)
+}
+
+function renderGoals(goals) {
+  const el = document.getElementById('goals-list')
+  if (!goals.length) {
+    el.innerHTML = `<div class="card text-center py-12">
+      <p class="text-3xl mb-2">🎯</p>
+      <p class="text-sm font-medium text-slate-500">No goals here</p>
+      <p class="text-xs text-slate-400 mt-1">Tell Claude what you want to achieve</p>
+    </div>`
+    return
+  }
+
+  // Sort: stalled → slowing → moving, then by progress
+  const sorted = [...goals].sort((a,b) => {
+    const ma = momentum(a), mb = momentum(b)
+    const order = { Stalled:0, Slowing:1, Moving:2 }
+    return (order[ma.label] ?? 3) - (order[mb.label] ?? 3)
+  })
+
+  el.innerHTML = sorted.map(g => {
+    const m = momentum(g)
+    const dl = deadlineInfo(g.deadline)
+    const c = catC(g.category)
+    const milestones = (g.milestones || [])
+
+    return `
+      <div class="card">
+        <div class="flex items-start gap-3 mb-4">
+          <span class="m-dot mt-1.5" style="background:${m.color};box-shadow:0 0 0 4px ${m.color}22"></span>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-start justify-between gap-3 flex-wrap">
+              <p class="font-semibold text-slate-900">${esc(g.title)}</p>
+              <div class="flex items-center gap-2 shrink-0">
+                ${catBadge(g.category)}
+                ${statusBadge(g.status)}
+              </div>
+            </div>
+            <div class="flex items-center gap-3 mt-1 flex-wrap">
+              <span class="text-xs font-medium" style="color:${m.color}">${m.label} · last updated ${m.days === 0 ? 'today' : m.days + 'd ago'}</span>
+              ${dl ? `<span class="text-xs font-medium" style="color:${dl.color}">⏱ ${dl.label}</span>` : ''}
+            </div>
+          </div>
+        </div>
+
+        <div class="mb-2">
+          <div class="flex justify-between items-center mb-1.5">
+            <span class="text-xs text-slate-400">Progress</span>
+            <span class="text-xs font-semibold text-slate-600">${g.progress}%</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" style="width:${g.progress}%;background:${c.dot}"></div>
+          </div>
+        </div>
+
+        ${milestones.length ? `
+          <div class="mt-3 space-y-1.5">
+            ${milestones.map(ms => `
+              <div class="flex items-center gap-2">
+                <div class="w-4 h-4 rounded flex items-center justify-center shrink-0 border" style="background:${ms.done?c.dot:'transparent'};border-color:${ms.done?c.dot:'#e2e8f0'}">
+                  ${ms.done ? `<svg width="10" height="10" fill="none" stroke="white" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>` : ''}
+                </div>
+                <span class="text-xs text-slate-600 ${ms.done?'line-through text-slate-400':''}">${esc(ms.label)}</span>
+                ${ms.target_date ? `<span class="text-xs text-slate-400 ml-auto">${ms.target_date}</span>` : ''}
+              </div>`).join('')}
+          </div>` : ''}
+
+        ${g.notes ? `<p class="text-xs text-slate-400 mt-3 leading-relaxed">${esc(g.notes)}</p>` : ''}
+      </div>`
+  }).join('')
+}
+
+// ── FINANCE ───────────────────────────────────────────────────────────────────
+function filterFin(status, btn) {
+  document.querySelectorAll('#fin-filters .pill').forEach(b => b.classList.remove('active'))
+  if (btn) btn.classList.add('active')
+  renderFin(status ? allFin.filter(f => f.status === status) : allFin)
+}
+
+function renderFin(facts) {
+  const tbody = document.getElementById('fin-table')
+  if (!facts.length) {
+    tbody.innerHTML = `<tr><td colspan="6" class="text-center text-slate-400 py-8 text-sm">No financial entries yet</td></tr>`
+  } else {
+    tbody.innerHTML = facts.map(f => {
+      const age = ageStyle(f.transaction_date)
+      return `<tr>
+        <td><span class="mr-1.5">${FIN_ICON[f.type]||'💰'}</span><span class="text-slate-600">${f.type}</span></td>
+        <td class="font-medium text-slate-900">${esc(f.asset)}</td>
+        <td class="font-mono font-semibold text-slate-800">${f.currency} ${Number(f.amount).toLocaleString('en-IN')}</td>
+        <td class="text-slate-400 text-xs">${f.transaction_date}</td>
+        <td><span class="text-xs font-semibold" style="color:${age.color}">${age.label}</span></td>
+        <td>${statusBadge(f.status)}</td>
+      </tr>`
+    }).join('')
+  }
+
+  // Show financial category facts/notes as context
+  const finMems = [...allFacts, ...allNotes].filter(m => m.category === 'financial')
+  const section = document.getElementById('fin-notes-section')
+  if (finMems.length) {
+    section.innerHTML = `
+      <div class="card border-slate-100">
+        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">From your notes</p>
+        <p class="text-xs text-slate-400 mb-3">Stored as free text. Ask Claude to convert to structured entries using <code class="bg-slate-100 px-1 rounded">add_financial_fact</code>.</p>
+        ${finMems.map(m => `
+          <div class="flex gap-3 py-2.5 border-b border-slate-50 last:border-0">
+            <div class="w-1 shrink-0 rounded-full" style="background:${catC(m.category).dot}"></div>
+            <p class="text-sm text-slate-600 leading-relaxed">${esc(m.content)}</p>
+          </div>`).join('')}
+      </div>`
+  } else {
+    section.innerHTML = ''
+  }
+}
+
+// ── PEOPLE ────────────────────────────────────────────────────────────────────
+function renderPeople(rels) {
+  const el = document.getElementById('people-grid')
+
+  if (rels.length) {
+    el.innerHTML = rels.map(r => `
+      <div class="card hover:shadow-md transition-shadow">
+        <div class="flex items-center gap-3 mb-3">
+          <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-xl shrink-0">
+            ${REL_ICON[r.relationship_type] || '👤'}
+          </div>
+          <div class="min-w-0">
+            <p class="font-semibold text-slate-900 truncate">${esc(r.name)}</p>
+            <p class="text-xs text-slate-400">${r.relationship_type}</p>
+          </div>
+        </div>
+        ${r.notes ? `<p class="text-xs text-slate-500 leading-relaxed mb-2">${esc(r.notes.slice(0,120))}${r.notes.length>120?'…':''}</p>` : ''}
+        <p class="text-xs text-slate-300">Mentioned ${relTime(r.last_mentioned)}</p>
+      </div>`).join('')
+  } else {
+    el.innerHTML = `<p class="text-sm text-slate-400 col-span-full">No relationships logged yet.</p>`
+  }
+
+  // Relationship category notes
+  const relMems = [...allFacts, ...allNotes].filter(m => m.category === 'relationships')
+  const section = document.getElementById('people-notes-section')
+  if (relMems.length) {
+    section.innerHTML = `
+      <div class="card border-slate-100">
+        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-3">From your notes</p>
+        ${relMems.map(m => `
+          <div class="flex gap-3 py-2.5 border-b border-slate-50 last:border-0">
+            <div class="w-1 shrink-0 rounded-full" style="background:${catC(m.category).dot}"></div>
+            <div>
+              <p class="text-sm text-slate-600 leading-relaxed">${esc(m.content)}</p>
+              <p class="text-xs text-slate-400 mt-0.5">${relTime(m.created_at)}</p>
+            </div>
+          </div>`).join('')}
+      </div>`
+  } else {
+    section.innerHTML = ''
+  }
+}
+
+// ── JOURNAL ───────────────────────────────────────────────────────────────────
+let journalMoodFilter = null
+
+function filterJournal(mood, btn) {
+  journalMoodFilter = mood
+  document.querySelectorAll('#journal-filters .pill').forEach(b => b.classList.remove('active'))
+  if (btn) btn.classList.add('active')
+  const filtered = mood ? allNotes.filter(n => n.mood === mood) : allNotes
+  renderJournal(filtered)
+}
+
+function renderJournal(notes) {
+  const feed  = document.getElementById('journal-feed')
+  const empty = document.getElementById('journal-empty')
+
+  if (!notes.length) {
+    feed.innerHTML = ''; empty.classList.remove('hidden'); return
+  }
+  empty.classList.add('hidden')
+
+  feed.innerHTML = notes.map(n => {
+    const c = catC(n.category)
+    const mood = n.mood ? MOOD_EMOJI[n.mood] || '' : ''
+    const emoTags = (n.emotion_tags||[]).map(e =>
+      `<span class="badge" style="background:#fef9c3;color:#713f12">${e}</span>`
+    ).join('')
+    const tags = (n.tags||[]).map(t =>
+      `<span class="badge bg-slate-100 text-slate-500">${t}</span>`
+    ).join('')
+
+    return `
+      <div class="note-card" style="border-left-color:${c.dot}">
+        <div class="flex items-start justify-between gap-3 mb-2">
+          <p class="text-sm text-slate-800 leading-relaxed flex-1">${mood ? mood+' ' : ''}${esc(n.content)}</p>
+          <span class="text-xs text-slate-400 shrink-0">${relTime(n.created_at)}</span>
+        </div>
+        ${emoTags || tags ? `<div class="flex flex-wrap gap-1.5 mt-2">${catBadge(n.category)}${emoTags}${tags}</div>` : `<div class="mt-1">${catBadge(n.category)}</div>`}
+      </div>`
+  }).join('')
+}
+
+// ── SEARCH ────────────────────────────────────────────────────────────────────
+document.getElementById('search-input').addEventListener('input', e => {
+  clearTimeout(searchTimer)
+  const q = e.target.value.trim()
+  document.getElementById('search-hint').classList.toggle('hidden', !!q)
+  document.getElementById('search-empty').classList.add('hidden')
+  if (!q) { document.getElementById('search-results').innerHTML = ''; return }
+
+  searchTimer = setTimeout(async () => {
+    const results = await fetch(`/api/memories/search?q=${encodeURIComponent(q)}&n=20`).then(r=>r.json())
+    const allEntries = [...allFacts, ...allNotes]
+    const byId = Object.fromEntries(allEntries.map(m => [m.id, m]))
+    const merged = results.filter(r => byId[r.id]).map(r => ({ ...byId[r.id], relevance: r.relevance }))
+
+    if (!merged.length) {
+      document.getElementById('search-results').innerHTML = ''
+      document.getElementById('search-empty').classList.remove('hidden')
+      return
+    }
+
+    document.getElementById('search-results').innerHTML = merged.map(m => {
+      const c = catC(m.category)
+      const pct = Math.round((m.relevance || 0) * 100)
+      return `
+        <div class="card card-sm mb-3 flex gap-3">
+          <div class="shrink-0 mt-0.5">
+            <div class="w-2 h-2 rounded-full" style="background:${c.dot}"></div>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 mb-1">
+              ${catBadge(m.category)}
+              <span class="badge" style="background:${m.type==='fact'?'#f0fdf4':'#f5f3ff'};color:${m.type==='fact'?'#14532d':'#4c1d95'}">${m.type}</span>
+              <span class="text-xs text-slate-400 ml-auto">${pct}% match</span>
+            </div>
+            <p class="text-sm text-slate-700 leading-relaxed">${esc(m.content)}</p>
+            <p class="text-xs text-slate-400 mt-1">${relTime(m.created_at)}</p>
+          </div>
+        </div>`
+    }).join('')
+  }, 280)
+})
+
+// ── PROFILE PANEL ─────────────────────────────────────────────────────────────
+function toggleProfile() {
+  document.getElementById('profile-panel').classList.toggle('open')
+  document.getElementById('profile-overlay').classList.toggle('open')
+}
+
+function renderProfile(prof, facts, skills) {
+  // Profile fields
+  const fields = document.getElementById('profile-fields')
+  const entries = Object.entries(prof)
+  fields.innerHTML = entries.length
+    ? `<div class="grid grid-cols-2 gap-2">
+        ${entries.map(([k,v]) => `
+          <div class="bg-slate-50 rounded-xl p-2.5 border border-slate-100">
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wide">${k}</p>
+            <p class="text-sm font-medium text-slate-800 mt-0.5">${typeof v==='object'?JSON.stringify(v):v}</p>
+          </div>`).join('')}
+       </div>`
+    : '<p class="text-sm text-slate-400">No profile data yet</p>'
+
+  // Facts
+  const factsEl = document.getElementById('profile-facts')
+  factsEl.innerHTML = facts.length
+    ? facts.map(f => {
+        const c = catC(f.category)
+        return `<div class="flex gap-2 py-1.5 border-b border-slate-50 last:border-0">
+          <div class="w-1 shrink-0 rounded-full mt-1" style="background:${c.dot};height:auto;min-height:14px"></div>
+          <p class="text-xs text-slate-600 leading-relaxed">${esc(f.content)}</p>
+        </div>`
+      }).join('')
+    : '<p class="text-xs text-slate-400">No facts stored yet</p>'
+
+  // Skills
+  const skillsEl = document.getElementById('profile-skills')
+  if (!skills.length) {
+    skillsEl.innerHTML = '<p class="text-xs text-slate-400">No skills logged yet</p>'
+  } else {
+    skillsEl.innerHTML = skills.map(s => `
+      <div class="flex items-center gap-2">
+        <div class="flex-1 min-w-0">
+          <div class="flex justify-between items-center mb-0.5">
+            <span class="text-xs font-medium text-slate-700 truncate">${esc(s.name)}</span>
+            <span class="text-xs text-slate-400">${s.proficiency}</span>
+          </div>
+          <div class="progress-track" style="height:3px">
+            <div class="progress-fill" style="width:${PROF_W[s.proficiency]||'50%'};background:${PROF_C[s.proficiency]||'#6366f1'}"></div>
+          </div>
+        </div>
+      </div>`).join('')
+  }
+}
+
+async function copyContext() {
+  try {
+    const res = await fetch('/api/context').then(r => r.json())
+    await navigator.clipboard.writeText(res.context)
+    const el = document.getElementById('copy-confirm')
+    el.classList.remove('hidden')
+    setTimeout(() => el.classList.add('hidden'), 2500)
+  } catch(e) {
+    alert('Could not copy — try manually from the console.')
+  }
+}
+
+// ── Keyboard shortcut — / to focus search ─────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key === '/' && e.target.tagName !== 'INPUT') {
+    e.preventDefault()
+    switchView('search', document.querySelector('[onclick*="search"]'))
+    setTimeout(() => document.getElementById('search-input').focus(), 50)
+  }
+})
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+loadAll()
+</script>
+</body>
+</html>
