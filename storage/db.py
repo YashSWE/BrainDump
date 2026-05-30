@@ -42,6 +42,7 @@ def init_db():
                 id           TEXT PRIMARY KEY,
                 user_id      TEXT DEFAULT 'default',
                 content      TEXT NOT NULL,
+                type         TEXT DEFAULT 'fact',
                 tags         TEXT DEFAULT '[]',
                 category     TEXT DEFAULT 'general',
                 mood         TEXT,
